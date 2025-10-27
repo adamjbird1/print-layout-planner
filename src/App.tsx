@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react'
+import type { ChangeEvent, FormEvent, PointerEvent as ReactPointerEvent } from 'react'
+import { jsPDF } from 'jspdf'
 import './App.css'
 
 type Unit = 'mm' | 'cm' | 'in'
@@ -19,6 +20,9 @@ type PrintObject = {
   xMm: number
   yMm: number
   color: string
+  textureSrc?: string
+  textureName?: string
+  textureFormat?: 'PNG' | 'JPEG' | 'WEBP'
 }
 
 type SheetCanvasProps = {
@@ -55,6 +59,12 @@ const UNIT_LABELS: Record<Unit, string> = {
 const COLOR_PALETTE = ['#5c6ac4', '#47a3f3', '#ec8c69', '#3f9c84', '#a364d9', '#fcda59']
 const MAX_SHEET_GRID = 24
 const EPSILON = 0.0001
+const SUPPORTED_TEXTURE_FORMATS: Record<string, 'PNG' | 'JPEG' | 'WEBP'> = {
+  'image/png': 'PNG',
+  'image/jpeg': 'JPEG',
+  'image/jpg': 'JPEG',
+  'image/webp': 'WEBP',
+}
 
 type PackingPlacement = {
   xMm: number
@@ -74,6 +84,17 @@ type Shelf = {
   yMm: number
   heightMm: number
   usedWidthMm: number
+}
+
+function hexToRgb(hex: string) {
+  const normalized = hex.replace('#', '')
+  const expand = normalized.length === 3 ? normalized.split('').map((char) => char + char).join('') : normalized
+  const int = Number.parseInt(expand, 16)
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  }
 }
 
 function packWithinWidth(rectangles: PrintObject[], maxWidthMm: number) {
@@ -337,13 +358,15 @@ function SheetCanvas({
           {objects.map((object) => (
             <div
               key={object.id}
-              className="sheet-object"
+              className={`sheet-object${object.textureSrc ? ' has-texture' : ''}`}
               style={{
                 left: object.xMm * scale,
                 top: object.yMm * scale,
                 width: object.widthMm * scale,
                 height: object.heightMm * scale,
-                backgroundColor: object.color,
+                backgroundColor: object.textureSrc ? '#ffffff' : object.color,
+                backgroundImage: object.textureSrc ? `url(${object.textureSrc})` : undefined,
+                border: object.textureSrc ? '1px solid rgba(15, 23, 42, 0.12)' : 'none',
               }}
               role="button"
               tabIndex={0}
@@ -375,6 +398,7 @@ function App() {
   const [quantityInput, setQuantityInput] = useState<string>('1')
   const [objects, setObjects] = useState<PrintObject[]>([])
   const [formError, setFormError] = useState<string | null>(null)
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const selectedPaperSize = useMemo(
     () => PAPER_SIZES.find((size) => size.id === paperSizeId) ?? PAPER_SIZES[1],
@@ -509,8 +533,55 @@ function App() {
     )
   }
 
+  const handleTextureSelection = (id: string, event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target
+    const { files } = input
+    const file = files && files[0]
+    if (!file) {
+      return
+    }
+
+    const format = SUPPORTED_TEXTURE_FORMATS[file.type]
+    if (!format) {
+      setFormError('Please choose a PNG, JPG, or WebP image for the texture.')
+      input.value = ''
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') {
+        setObjects((current) =>
+          current.map((object) =>
+            object.id === id
+              ? { ...object, textureSrc: result, textureName: file.name, textureFormat: format }
+              : object,
+          ),
+        )
+        setFormError(null)
+      }
+      input.value = ''
+    }
+    reader.onerror = () => {
+      setFormError('We could not read that file. Please try a different image.')
+      input.value = ''
+    }
+    reader.readAsDataURL(file)
+  }
+
   const removeObject = (id: string) => {
     setObjects((current) => current.filter((object) => object.id !== id))
+  }
+
+  const clearTexture = (id: string) => {
+    setObjects((current) =>
+      current.map((object) =>
+        object.id === id
+          ? { ...object, textureSrc: undefined, textureName: undefined, textureFormat: undefined }
+          : object,
+      ),
+    )
   }
 
   const resetLayout = () => {
@@ -550,13 +621,166 @@ function App() {
     setFormError(null)
   }
 
+  const exportToPdf = async () => {
+    if (objects.length === 0) {
+      window.alert('Add one or more print objects before exporting.')
+      return
+    }
+
+    const loadImage = (src: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image()
+        image.onload = () => resolve(image)
+        image.onerror = reject
+        image.src = src
+      })
+
+    const textures = new Map<
+      string,
+      { image: HTMLImageElement; format: 'PNG' | 'JPEG' | 'WEBP'; widthPx: number; heightPx: number }
+    >()
+
+    try {
+      await Promise.all(
+        objects
+          .filter((object) => object.textureSrc)
+          .map(async (object) => {
+            if (!object.textureSrc) return
+            const image = await loadImage(object.textureSrc)
+            const format =
+              object.textureFormat ??
+              (object.textureSrc.startsWith('data:image/jpeg') || object.textureSrc.startsWith('data:image/jpg')
+                ? 'JPEG'
+                : object.textureSrc.startsWith('data:image/webp')
+                  ? 'WEBP'
+                  : 'PNG')
+            textures.set(object.id, {
+              image,
+              format,
+              widthPx: image.naturalWidth,
+              heightPx: image.naturalHeight,
+            })
+          }),
+      )
+    } catch (error) {
+      console.error('Texture loading error', error)
+      window.alert('We could not load one of the textures. Please re-upload it and try again.')
+      return
+    }
+
+    const orientationSetting = sheetDimensions.widthMm >= sheetDimensions.heightMm ? 'landscape' : 'portrait'
+    const doc = new jsPDF({
+      orientation: orientationSetting,
+      unit: 'mm',
+      format: [sheetDimensions.widthMm, sheetDimensions.heightMm],
+    })
+
+    const addImageSegment = (
+      image: HTMLImageElement,
+      format: 'PNG' | 'JPEG' | 'WEBP',
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      sx: number,
+      sy: number,
+      sWidth: number,
+      sHeight: number,
+    ) => {
+      ;(doc as unknown as {
+        addImage: (
+          imageData: HTMLImageElement,
+          format: 'PNG' | 'JPEG' | 'WEBP',
+          x: number,
+          y: number,
+          width: number,
+          height: number,
+          alias?: string,
+          compression?: string,
+          rotation?: number,
+          sx?: number,
+          sy?: number,
+          sWidth?: number,
+          sHeight?: number,
+        ) => void
+      }).addImage(image, format, x, y, width, height, undefined, 'FAST', 0, sx, sy, sWidth, sHeight)
+    }
+
+    let hasAnyPage = false
+
+    for (let row = 0; row < sheetRows; row += 1) {
+      for (let column = 0; column < sheetColumns; column += 1) {
+        const originX = column * sheetDimensions.widthMm
+        const originY = row * sheetDimensions.heightMm
+        const drawCommands: Array<() => void> = []
+
+        objects.forEach((object) => {
+          const objectRight = object.xMm + object.widthMm
+          const objectBottom = object.yMm + object.heightMm
+          const interLeft = Math.max(object.xMm, originX)
+          const interTop = Math.max(object.yMm, originY)
+          const interRight = Math.min(objectRight, originX + sheetDimensions.widthMm)
+          const interBottom = Math.min(objectBottom, originY + sheetDimensions.heightMm)
+          const interWidth = interRight - interLeft
+          const interHeight = interBottom - interTop
+
+          if (interWidth <= EPSILON || interHeight <= EPSILON) {
+            return
+          }
+
+          const relativeX = interLeft - originX
+          const relativeY = interTop - originY
+          const texture = textures.get(object.id)
+
+          if (texture) {
+            const { image, format, widthPx, heightPx } = texture
+            const scaleX = widthPx / object.widthMm
+            const scaleY = heightPx / object.heightMm
+            const sx = Math.max(0, (interLeft - object.xMm) * scaleX)
+            const sy = Math.max(0, (interTop - object.yMm) * scaleY)
+            const sWidth = Math.max(1, Math.min(widthPx - sx, interWidth * scaleX))
+            const sHeight = Math.max(1, Math.min(heightPx - sy, interHeight * scaleY))
+
+            drawCommands.push(() => {
+              addImageSegment(image, format, relativeX, relativeY, interWidth, interHeight, sx, sy, sWidth, sHeight)
+              doc.rect(relativeX, relativeY, interWidth, interHeight, 'S')
+            })
+          } else {
+            const rgb = hexToRgb(object.color)
+            drawCommands.push(() => {
+              doc.setFillColor(rgb.r, rgb.g, rgb.b)
+              doc.rect(relativeX, relativeY, interWidth, interHeight, 'FD')
+            })
+          }
+        })
+
+        if (drawCommands.length > 0) {
+          if (!hasAnyPage) {
+            hasAnyPage = true
+          } else {
+            doc.addPage()
+          }
+          doc.setDrawColor(180, 187, 201)
+          doc.setLineWidth(0.25)
+          drawCommands.forEach((draw) => draw())
+        }
+      }
+    }
+
+    if (!hasAnyPage) {
+      window.alert('Nothing to export — make sure objects are placed within the sheet layout.')
+      return
+    }
+
+    doc.save('print-layout.pdf')
+  }
+
   return (
     <div className="app-root">
       <aside className="control-panel">
         <h1>Print Layout Planner</h1>
         <p className="control-panel__intro">
-          Pick a paper size, add your print objects, and drag them into place. When you’re ready we’ll add
-          automatic layout optimisation.
+          Pick a paper size, add your print objects, and drag them into place. When you’re ready hit 'Optimise layout' to pack them as best we can. 
         </p>
 
         <section className="control-panel__section">
@@ -695,15 +919,44 @@ function App() {
             <ul className="object-list">
               {objects.map((object) => (
                 <li key={object.id} style={{ borderLeftColor: object.color }}>
-                  <div>
+                  <div className="object-list__info">
                     <strong>{object.label}</strong>
                     <span>
                       {object.widthMm.toFixed(0)} × {object.heightMm.toFixed(0)} mm
                     </span>
+                    <span className="object-list__texture">
+                      {object.textureName ? `Texture: ${object.textureName}` : 'No texture uploaded'}
+                    </span>
                   </div>
-                  <button type="button" onClick={() => removeObject(object.id)}>
-                    Remove
-                  </button>
+                  <div className="object-list__buttons">
+                    <input
+                      ref={(node) => {
+                        if (node) {
+                          fileInputRefs.current[object.id] = node
+                        } else {
+                          delete fileInputRefs.current[object.id]
+                        }
+                      }}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(event) => handleTextureSelection(object.id, event)}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRefs.current[object.id]?.click()}
+                    >
+                      {object.textureSrc ? 'Replace texture' : 'Upload texture'}
+                    </button>
+                    {object.textureSrc && (
+                      <button type="button" onClick={() => clearTexture(object.id)}>
+                        Remove texture
+                      </button>
+                    )}
+                    <button type="button" onClick={() => removeObject(object.id)} className="danger">
+                      Remove
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -711,6 +964,9 @@ function App() {
           <div className="control-panel__actions">
             <button type="button" onClick={handleOptimise}>
               Optimise layout
+            </button>
+            <button type="button" onClick={exportToPdf} className="primary">
+              Export PDF
             </button>
             <button type="button" onClick={resetLayout} className="danger">
               Clear objects

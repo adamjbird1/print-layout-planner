@@ -164,7 +164,8 @@
 .object-list li {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding: 0.65rem;
   border-left: 4px solid transparent;
   border-radius: 8px;
@@ -179,6 +180,28 @@
 .object-list li span {
   font-size: 0.8rem;
   color: #475569;
+}
+
+.object-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.object-list__texture {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.object-list__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.object-list__buttons button {
+  min-width: 0;
 }
 
 .control-panel__empty {
@@ -297,6 +320,10 @@
   cursor: grab;
   box-shadow: 0 6px 12px rgba(15, 23, 42, 0.15);
   transition: transform 0.15s ease;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
 
 .sheet-object:active {
@@ -304,16 +331,35 @@
   transform: scale(1.02);
 }
 
+.sheet-object.has-texture {
+  color: #f8fafc;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
+}
+
 .sheet-object__label {
   font-weight: 700;
   font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.15);
 }
 
 .sheet-object__dimensions {
   font-size: 0.75rem;
   font-weight: 600;
   align-self: flex-end;
-  color: rgba(15, 23, 42, 0.7);
+  color: rgba(15, 23, 42, 0.8);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.15);
+}
+
+.sheet-object.has-texture .sheet-object__label,
+.sheet-object.has-texture .sheet-object__dimensions {
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
 }
 
 .form-warning {
