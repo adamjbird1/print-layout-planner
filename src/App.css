@@ -1,0 +1,404 @@
+#root {
+  min-height: 100vh;
+}
+
+.app-root {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f6fb;
+  color: #1f2933;
+}
+
+.control-panel {
+  width: 320px;
+  max-width: 100%;
+  background: #ffffff;
+  padding: 2rem;
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.control-panel h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+.control-panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+.control-panel__intro {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.control-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.control-panel__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1f2933;
+}
+
+.control-panel__label select {
+  margin-top: 0.25rem;
+}
+
+.control-panel__select,
+.control-panel select,
+.control-panel input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  background: #f8fbff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: box-shadow 0.2s ease;
+}
+
+.control-panel select:focus,
+.control-panel input:focus {
+  outline: none;
+  border-color: #5c6ac4;
+  box-shadow: 0 0 0 3px rgba(92, 106, 196, 0.25);
+}
+
+.control-panel__orientation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.orientation-toggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  gap: 0.2rem;
+}
+
+.sheet-grid-inputs {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sheet-grid-inputs label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.orientation-toggle button {
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.orientation-toggle button.is-active {
+  background: #5c6ac4;
+  color: #ffffff;
+}
+
+.object-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.object-form__row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.object-form__row label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.object-form button {
+  align-self: flex-start;
+}
+
+.object-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.object-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem;
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.object-list li strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.object-list li span {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.control-panel__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.control-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.canvas-panel {
+  flex: 1;
+  display: flex;
+  padding: 2rem;
+}
+
+.sheet-panel {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow:
+    0 20px 40px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(148, 163, 184, 0.1);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.sheet-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  color: #475569;
+}
+
+.sheet-panel__header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sheet-panel__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.sheet-panel__meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.sheet-panel__scale {
+  font-size: 0.85rem;
+  color: #64748b;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.sheet-panel__canvas {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+}
+
+.sheet {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 251, 255, 0.9)),
+    repeating-linear-gradient(
+      0deg,
+      rgba(148, 163, 184, 0.12),
+      rgba(148, 163, 184, 0.12) 1px,
+      transparent 1px,
+      transparent 12px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(148, 163, 184, 0.12),
+      rgba(148, 163, 184, 0.12) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow:
+    0 16px 24px rgba(15, 23, 42, 0.08),
+    0 4px 8px rgba(15, 23, 42, 0.08);
+  overflow: visible;
+}
+
+.sheet-cell {
+  position: absolute;
+  border: 1px dashed rgba(100, 116, 139, 0.55);
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.sheet-object {
+  position: absolute;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.5rem;
+  color: #0f172a;
+  cursor: grab;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.15);
+  transition: transform 0.15s ease;
+}
+
+.sheet-object:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+}
+
+.sheet-object__label {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.sheet-object__dimensions {
+  font-size: 0.75rem;
+  font-weight: 600;
+  align-self: flex-end;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.form-warning {
+  margin: 0;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #92400e;
+}
+
+button {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: #edf2ff;
+  color: #3730a3;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  background-color: #e0e7ff;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button.primary {
+  background-color: #5c6ac4;
+  color: #ffffff;
+}
+
+button.primary:hover {
+  background-color: #515db1;
+}
+
+button.danger {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+button.danger:hover {
+  background-color: #fecaca;
+}
+
+@media (max-width: 960px) {
+  .app-root {
+    flex-direction: column;
+  }
+
+  .control-panel {
+    width: 100%;
+    box-shadow: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .canvas-panel {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .object-form__row {
+    flex-direction: column;
+  }
+
+  .canvas-panel {
+    padding: 1rem;
+  }
+
+  .sheet-panel {
+    padding: 1rem;
+  }
+
+  .sheet-panel__canvas {
+    min-height: 360px;
+  }
+
+  .sheet-grid-inputs {
+    flex-direction: column;
+  }
+}
