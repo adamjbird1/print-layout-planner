@@ -635,10 +635,7 @@ function App() {
         image.src = src
       })
 
-    const textures = new Map<
-      string,
-      { image: HTMLImageElement; format: 'PNG' | 'JPEG' | 'WEBP'; widthPx: number; heightPx: number }
-    >()
+    const textures = new Map<string, { image: HTMLImageElement; widthPx: number; heightPx: number }>()
 
     try {
       await Promise.all(
@@ -647,16 +644,8 @@ function App() {
           .map(async (object) => {
             if (!object.textureSrc) return
             const image = await loadImage(object.textureSrc)
-            const format =
-              object.textureFormat ??
-              (object.textureSrc.startsWith('data:image/jpeg') || object.textureSrc.startsWith('data:image/jpg')
-                ? 'JPEG'
-                : object.textureSrc.startsWith('data:image/webp')
-                  ? 'WEBP'
-                  : 'PNG')
             textures.set(object.id, {
               image,
-              format,
               widthPx: image.naturalWidth,
               heightPx: image.naturalHeight,
             })
@@ -674,36 +663,12 @@ function App() {
       unit: 'mm',
       format: [sheetDimensions.widthMm, sheetDimensions.heightMm],
     })
+    const scratchCanvas = document.createElement('canvas')
+    const scratchContext = scratchCanvas.getContext('2d')
 
-    const addImageSegment = (
-      image: HTMLImageElement,
-      format: 'PNG' | 'JPEG' | 'WEBP',
-      x: number,
-      y: number,
-      width: number,
-      height: number,
-      sx: number,
-      sy: number,
-      sWidth: number,
-      sHeight: number,
-    ) => {
-      ;(doc as unknown as {
-        addImage: (
-          imageData: HTMLImageElement,
-          format: 'PNG' | 'JPEG' | 'WEBP',
-          x: number,
-          y: number,
-          width: number,
-          height: number,
-          alias?: string,
-          compression?: string,
-          rotation?: number,
-          sx?: number,
-          sy?: number,
-          sWidth?: number,
-          sHeight?: number,
-        ) => void
-      }).addImage(image, format, x, y, width, height, undefined, 'FAST', 0, sx, sy, sWidth, sHeight)
+    if (!scratchContext) {
+      window.alert('We could not prepare the export canvas. Please try again in a modern browser.')
+      return
     }
 
     let hasAnyPage = false
@@ -733,16 +698,34 @@ function App() {
           const texture = textures.get(object.id)
 
           if (texture) {
-            const { image, format, widthPx, heightPx } = texture
+            const { image, widthPx, heightPx } = texture
             const scaleX = widthPx / object.widthMm
             const scaleY = heightPx / object.heightMm
-            const sx = Math.max(0, (interLeft - object.xMm) * scaleX)
-            const sy = Math.max(0, (interTop - object.yMm) * scaleY)
-            const sWidth = Math.max(1, Math.min(widthPx - sx, interWidth * scaleX))
-            const sHeight = Math.max(1, Math.min(heightPx - sy, interHeight * scaleY))
+            const sxFloat = Math.max(0, (interLeft - object.xMm) * scaleX)
+            const syFloat = Math.max(0, (interTop - object.yMm) * scaleY)
+            const sWidthFloat = Math.max(1, Math.min(widthPx - sxFloat, interWidth * scaleX))
+            const sHeightFloat = Math.max(1, Math.min(heightPx - syFloat, interHeight * scaleY))
+
+            const canvasWidth = Math.max(1, Math.round(sWidthFloat))
+            const canvasHeight = Math.max(1, Math.round(sHeightFloat))
+            scratchCanvas.width = canvasWidth
+            scratchCanvas.height = canvasHeight
+            scratchContext.clearRect(0, 0, canvasWidth, canvasHeight)
+            scratchContext.drawImage(
+              image,
+              sxFloat,
+              syFloat,
+              sWidthFloat,
+              sHeightFloat,
+              0,
+              0,
+              canvasWidth,
+              canvasHeight,
+            )
+            const segmentDataUrl = scratchCanvas.toDataURL('image/png')
 
             drawCommands.push(() => {
-              addImageSegment(image, format, relativeX, relativeY, interWidth, interHeight, sx, sy, sWidth, sHeight)
+              doc.addImage(segmentDataUrl, 'PNG', relativeX, relativeY, interWidth, interHeight)
               doc.rect(relativeX, relativeY, interWidth, interHeight, 'S')
             })
           } else {
