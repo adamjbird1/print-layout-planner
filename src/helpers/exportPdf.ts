@@ -24,6 +24,7 @@ const loadImage = (src: string) =>
 export async function exportLayoutToPdf(
   objects: PrintObject[],
   sheet: SheetDimensions,
+  printableSheet: SheetDimensions,
   columns: number,
   rows: number,
 ) {
@@ -31,6 +32,11 @@ export async function exportLayoutToPdf(
     window.alert('Add one or more print objects before exporting.')
     return
   }
+
+  const printableWidth = Math.max(1, printableSheet.widthMm)
+  const printableHeight = Math.max(1, printableSheet.heightMm)
+  const marginX = Math.max(0, (sheet.widthMm - printableWidth) / 2)
+  const marginY = Math.max(0, (sheet.heightMm - printableHeight) / 2)
 
   const textures = new Map<string, { image: HTMLImageElement; widthPx: number; heightPx: number }>()
 
@@ -73,8 +79,8 @@ export async function exportLayoutToPdf(
 
   for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
     for (let columnIndex = 0; columnIndex < columns; columnIndex += 1) {
-      const originX = columnIndex * sheet.widthMm
-      const originY = rowIndex * sheet.heightMm
+      const originX = columnIndex * printableWidth
+      const originY = rowIndex * printableHeight
       const drawCommands: Array<() => void> = []
 
       objects.forEach((object) => {
@@ -82,8 +88,8 @@ export async function exportLayoutToPdf(
         const objectBottom = object.yMm + object.heightMm
         const interLeft = Math.max(object.xMm, originX)
         const interTop = Math.max(object.yMm, originY)
-        const interRight = Math.min(objectRight, originX + sheet.widthMm)
-        const interBottom = Math.min(objectBottom, originY + sheet.heightMm)
+        const interRight = Math.min(objectRight, originX + printableWidth)
+        const interBottom = Math.min(objectBottom, originY + printableHeight)
         const interWidth = interRight - interLeft
         const interHeight = interBottom - interTop
 
@@ -91,8 +97,8 @@ export async function exportLayoutToPdf(
           return
         }
 
-        const relativeX = interLeft - originX
-        const relativeY = interTop - originY
+        const relativeX = interLeft - originX + marginX
+        const relativeY = interTop - originY + marginY
         const texture = textures.get(object.id)
 
         if (texture) {
@@ -140,6 +146,13 @@ export async function exportLayoutToPdf(
           hasAnyPage = true
         } else {
           doc.addPage()
+        }
+        doc.setFillColor(255, 255, 255)
+        doc.rect(0, 0, sheet.widthMm, sheet.heightMm, 'F')
+        if (marginX > 0 || marginY > 0) {
+          doc.setDrawColor(210, 214, 222)
+          doc.setLineWidth(0.2)
+          doc.rect(marginX, marginY, printableWidth, printableHeight, 'D')
         }
         doc.setDrawColor(180, 187, 201)
         doc.setLineWidth(0.25)

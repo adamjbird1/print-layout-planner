@@ -24,6 +24,7 @@ function App() {
   const [quantityInput, setQuantityInput] = useState<string>('1')
   const [objects, setObjects] = useState<PrintObject[]>([])
   const [formError, setFormError] = useState<string | null>(null)
+  const [marginMm, setMarginMm] = useState<number>(5)
 
   const selectedPaperSize = useMemo(
     () => PAPER_SIZES.find((size) => size.id === paperSizeId) ?? PAPER_SIZES[1],
@@ -43,12 +44,36 @@ function App() {
     }
   }, [orientation, selectedPaperSize])
 
+  const maxMarginMm = useMemo(
+    () =>
+      Math.max(
+        0,
+        Math.min(sheetDimensions.widthMm, sheetDimensions.heightMm) / 2 - 1,
+      ),
+    [sheetDimensions.widthMm, sheetDimensions.heightMm],
+  )
+
+  useEffect(() => {
+    if (marginMm > maxMarginMm) {
+      setMarginMm(Number(maxMarginMm.toFixed(2)))
+    }
+  }, [marginMm, maxMarginMm])
+
+  const printableSheetDimensions = useMemo<SheetDimensions>(() => {
+    const width = Math.max(sheetDimensions.widthMm - marginMm * 2, 1)
+    const height = Math.max(sheetDimensions.heightMm - marginMm * 2, 1)
+    return {
+      widthMm: width,
+      heightMm: height,
+    }
+  }, [sheetDimensions, marginMm])
+
   const layoutDimensions = useMemo(
     () => ({
-      widthMm: sheetDimensions.widthMm * sheetColumns,
-      heightMm: sheetDimensions.heightMm * sheetRows,
+      widthMm: printableSheetDimensions.widthMm * sheetColumns,
+      heightMm: printableSheetDimensions.heightMm * sheetRows,
     }),
-    [sheetDimensions, sheetColumns, sheetRows],
+    [printableSheetDimensions, sheetColumns, sheetRows],
   )
 
   useEffect(() => {
@@ -105,10 +130,9 @@ function App() {
       notices.push('Quantity capped at 25 per add.')
     }
 
-    if (widthMm > sheetDimensions.widthMm || heightMm > sheetDimensions.heightMm) {
-      notices.push('This object is larger than a single sheet and will span multiple sheets.')
+    if (widthMm > printableSheetDimensions.widthMm || heightMm > printableSheetDimensions.heightMm) {
+      notices.push('This object is larger than a single printable sheet and will span multiple sheets.')
     }
-
     if (widthMm > layoutDimensions.widthMm || heightMm > layoutDimensions.heightMm) {
       notices.push('Increase the sheet grid to keep the full object within the workspace.')
     }
@@ -220,7 +244,11 @@ function App() {
       return
     }
 
-    const result = optimisePackingLayout(objects, sheetDimensions.widthMm, sheetDimensions.heightMm)
+    const result = optimisePackingLayout(
+      objects,
+      printableSheetDimensions.widthMm,
+      printableSheetDimensions.heightMm,
+    )
 
     if (!result) {
       window.alert('Unable to generate an optimised layout. Try increasing the sheet grid or adjusting sizes.')
@@ -246,7 +274,7 @@ function App() {
   }
 
   const handleExportPdf = () => {
-    void exportLayoutToPdf(objects, sheetDimensions, sheetColumns, sheetRows)
+    void exportLayoutToPdf(objects, sheetDimensions, printableSheetDimensions, sheetColumns, sheetRows)
   }
 
   return (
@@ -277,12 +305,18 @@ function App() {
         onOptimise={handleOptimise}
         onExportPdf={handleExportPdf}
         onResetLayout={resetLayout}
+        marginMm={marginMm}
+        onMarginChange={(value) => setMarginMm(Math.min(Math.max(value, 0), maxMarginMm))}
+        maxMarginMm={maxMarginMm}
       />
 
       <main className="canvas-panel">
         <SheetCanvas
-          sheetWidthMm={sheetDimensions.widthMm}
-          sheetHeightMm={sheetDimensions.heightMm}
+          sheetWidthMm={printableSheetDimensions.widthMm}
+          sheetHeightMm={printableSheetDimensions.heightMm}
+          actualSheetWidthMm={sheetDimensions.widthMm}
+          actualSheetHeightMm={sheetDimensions.heightMm}
+          marginMm={marginMm}
           columns={sheetColumns}
           rows={sheetRows}
           objects={objects}

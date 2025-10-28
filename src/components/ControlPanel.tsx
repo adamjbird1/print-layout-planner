@@ -29,6 +29,9 @@ type ControlPanelProps = {
   onOptimise: () => void
   onExportPdf: () => void
   onResetLayout: () => void
+  marginMm: number
+  onMarginChange: (value: number) => void
+  maxMarginMm: number
 }
 
 export function ControlPanel({
@@ -57,6 +60,9 @@ export function ControlPanel({
   onOptimise,
   onExportPdf,
   onResetLayout,
+  marginMm,
+  onMarginChange,
+  maxMarginMm,
 }: ControlPanelProps) {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
@@ -64,8 +70,7 @@ export function ControlPanel({
     <aside className="control-panel">
       <h1>Print Layout Planner</h1>
       <p className="control-panel__intro">
-        Pick a paper size, add your print objects, and drag them into place. When you’re ready we’ll add automatic
-        layout optimisation.
+        Pick a paper size, add your print objects, and drag them into place. You can hit Optimise Layout to minimise the required sheets of paper, then upload your textures and set a margin before exporting a ready-to-print PDF. 
       </p>
 
       <section className="control-panel__section">
@@ -135,6 +140,26 @@ export function ControlPanel({
             />
           </label>
         </div>
+      </section>
+
+      <section className="control-panel__section">
+        <h2>Export options</h2>
+        <label className="control-panel__label">
+          Margin per sheet (mm)
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={marginMm}
+            max={Math.max(0, maxMarginMm)}
+            onChange={(event) =>
+              onMarginChange(Math.min(Math.max(0, Number(event.target.value) || 0), maxMarginMm))
+            }
+          />
+          <span className="control-panel__hint">
+            Up to {Math.max(0, maxMarginMm).toFixed(1)} mm based on sheet size.
+          </span>
+        </label>
       </section>
 
       <section className="control-panel__section">

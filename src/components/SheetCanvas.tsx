@@ -5,6 +5,9 @@ import type { PrintObject } from '../types'
 type SheetCanvasProps = {
   sheetWidthMm: number
   sheetHeightMm: number
+  actualSheetWidthMm: number
+  actualSheetHeightMm: number
+  marginMm: number
   columns: number
   rows: number
   objects: PrintObject[]
@@ -14,6 +17,9 @@ type SheetCanvasProps = {
 export function SheetCanvas({
   sheetWidthMm,
   sheetHeightMm,
+  actualSheetWidthMm,
+  actualSheetHeightMm,
+  marginMm,
   columns,
   rows,
   objects,
@@ -115,7 +121,10 @@ export function SheetCanvas({
             Layout {Math.round(totalWidthMm)} × {Math.round(totalHeightMm)} mm
           </div>
           <div className="sheet-panel__meta">
-            {columns} × {rows} sheets · {Math.round(sheetWidthMm)} × {Math.round(sheetHeightMm)} mm each
+            {columns} × {rows} sheets · printable {Math.round(sheetWidthMm)} × {Math.round(sheetHeightMm)} mm
+            {marginMm > 0
+              ? ` · margin ${marginMm.toFixed(1)} mm · sheet ${Math.round(actualSheetWidthMm)} × ${Math.round(actualSheetHeightMm)} mm`
+              : ` · sheet ${Math.round(actualSheetWidthMm)} × ${Math.round(actualSheetHeightMm)} mm`}
           </div>
         </div>
         <span className="sheet-panel__scale">Scale · 1 mm = {scale.toFixed(2)} px</span>

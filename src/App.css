@@ -60,6 +60,13 @@
   margin-top: 0.25rem;
 }
 
+.control-panel__hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
 .control-panel__select,
 .control-panel select,
 .control-panel input {
